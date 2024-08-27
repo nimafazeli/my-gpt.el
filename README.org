@@ -39,25 +39,73 @@
 ** Specifying the AI Service
    Use the ~:service~ header argument to choose between OpenAI and Perplexity:
 
-   #+begin_src org
-   ,#+begin_src my-gpt :service openai
-   Explain quantum computing in simple terms.
-   ,#+end_src
-
-   ,#+begin_src my-gpt :service perplexity
-   What are the main differences between Python and JavaScript?
-   ,#+end_src
+   #+begin_src my-gpt :service openai
+   Describe emacs in one sentence.
    #+end_src
+
+   #+RESULTS:
+   : Emacs is a highly customizable, open-source text editor and coding environment which integrates with numerous plugins and is available on many operating systems.
+
+
+   #+begin_src my-gpt :service perplexity
+   What was the closing value of SPY in the past three days? Give me an org-mode table of the results.
+   #+end_src
+
+   #+RESULTS:
+   | Date         | Closing Value |
+   |--------------+---------------|
+   | Aug 20, 2024 | $558.70       |
+   | Aug 19, 2024 | $559.61       |
+   | Aug 18, 2024 | $554.31       |
+
+** Sessions
+
+
+   #+begin_src my-gpt :service perplexity :session test :results output
+   What was the closing value of SPY in the past three days? Give me only an org-mode table of the results in raw format without markdown guards.
+   #+end_src
+
+   #+RESULTS:
+   : | Date       | Close |
+   : |------------|-------|
+   : | Aug 27, 2024 | 560.25 |
+   : | Aug 26, 2024 | 560.44 |
+   : | Aug 25, 2024 | 562.13 |
+   : 
+   : Note: The closing values are based on the historical price data from Yahoo Finance and YCharts.
+
+   
+   #+begin_src my-gpt :service perplexity :session test :results output
+   Give me a link to the chart of the data
+   #+end_src
+
+   #+RESULTS:
+   : You can find the historical price chart for SPY on various financial websites. Here are a few links:
+   : 
+   : 1. **YCharts**: [SPY Price Chart](https://ycharts.com/companies/SPY/price)
+   : 2. **TradingView**: [SPY Chart](https://www.tradingview.com/symbols/AMEX-SPY/)
+   : 3. **Macrotrends**: [SPDR S&P 500 ETF Stock Price History](https://www.macrotrends.net/stocks/charts/SPY/spdr-s-p-500-etf/stock-price-history)
+   : 
+   : These platforms provide interactive charts that allow you to view historical price data and trends for SPY.
+   
 
 ** Setting the AI Model
    Specify the model using the ~:model~ header argument:
 
-   #+begin_src org
-   ,#+begin_src my-gpt :service openai :model gpt-4
+   #+begin_src my-gpt :service openai :model gpt-4o
    Write a haiku about autumn.
-   ,#+end_src
    #+end_src
 
+   #+RESULTS:
+   : Leaves of ember fall,
+   : Whispering winds kiss the trees—
+   : Autumn's hush begins.
+
+   
+   #+begin_src my-gpt :service perplexity :model llama-3.1-sonar-small-128k-online
+        What is the current price of Bitcoin?
+   #+end_src
+   
 ** Using System Directives
    System directives help set the context or behavior for the AI's responses. There are several ways to set system directives:
 

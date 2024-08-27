@@ -1,0 +1,11 @@
+#+TITLE: My GPT Templates
+
+#+name: my-gpt_template:python-expert
+#+begin_src org :var system="You are a Python expert. Provide only code, no explanations." :var service="openai" :var model="gpt-4"
+:system $system :service $service :model $model
+#+end_src
+
+#+name: my-gpt_template:sql-expert
+#+begin_src org :var system="You are an SQL expert. Provide SQL queries without explanations." :var service="perplexity" :var model="llama-3.1-sonar-small-128k-online"
+:system $system :service $service :model $model
+#+end_src
