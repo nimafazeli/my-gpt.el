@@ -1,15 +1,39 @@
 ;;; my-gpt.el --- Interact with various AI APIs -*- lexical-binding: t; -*-
 
+;;; Commentary:
+;; This package provides integration between Org-mode and AI language models
+;; (currently OpenAI's GPT and Perplexity AI).
+
+;;; Code:
+
 (require 'json)
 (require 'url)
 (require 'auth-source)
 (require 'ob)
 
-(defvar my-gpt-openai-api-url "https://api.openai.com/v1/chat/completions"
-  "The OpenAI API endpoint for completions.")
+(defgroup my-gpt nil
+  "Customization group for my-gpt package."
+  :group 'applications)
 
-(defvar my-gpt-perplexity-api-url "https://api.perplexity.ai/chat/completions"
-  "The Perplexity AI API endpoint for completions.")
+(defcustom my-gpt-openai-api-url "https://api.openai.com/v1/chat/completions"
+  "The OpenAI API endpoint for completions."
+  :type 'string
+  :group 'my-gpt)
+
+(defcustom my-gpt-perplexity-api-url "https://api.perplexity.ai/chat/completions"
+  "The Perplexity AI API endpoint for completions."
+  :type 'string
+  :group 'my-gpt)
+
+(defcustom my-gpt-openai-model "gpt-4"
+  "The default model to use for OpenAI API requests."
+  :type 'string
+  :group 'my-gpt)
+
+(defcustom my-gpt-perplexity-model "llama-3.1-sonar-small-128k-online"
+  "The default model to use for Perplexity API requests."
+  :type 'string
+  :group 'my-gpt)
 
 (defvar my-gpt-sessions (make-hash-table :test 'equal)
   "Hash table to store session data.")
@@ -52,10 +76,11 @@
      messages
      (vector `((role . "user") (content . ,body))))))
 
-(defun my-gpt-send (service model body session)
-  "Send BODY to SERVICE using MODEL and SESSION, and return the response."
+(defun my-gpt-send (service body session)
+  "Send BODY to SERVICE using SESSION, and return the response."
   (let* ((api-key (my-gpt-get-api-key (if (eq service 'openai) "api.openai.com" "api.perplexity.ai") "org-ai"))
          (url (if (eq service 'openai) my-gpt-openai-api-url my-gpt-perplexity-api-url))
+         (model (if (eq service 'openai) my-gpt-openai-model my-gpt-perplexity-model))
          (headers `(("Content-Type" . "application/json")
                     ("Authorization" . ,(format "Bearer %s" api-key))))
          (messages (my-gpt-format-messages body session))
@@ -71,11 +96,10 @@
 (defun org-babel-execute:my-gpt (body params)
   "Execute a block of my-gpt code with org-babel."
   (let* ((service (intern (or (cdr (assq :service params)) "openai")))
-         (model (or (cdr (assq :model params)) 
-                    (if (eq service 'openai) "gpt-4" "llama-3.1-sonar-small-128k-online")))
          (session (or (cdr (assq :session params)) "default"))
-         (result (my-gpt-send service model body session)))
+         (result (my-gpt-send service body session)))
     result))
 
 (provide 'my-gpt)
+
 ;;; my-gpt.el ends here
