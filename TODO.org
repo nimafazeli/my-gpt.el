@@ -1,8 +1,0 @@
-
-#+begin_src my-gpt :session my-chat :service openai
-What is the capital of Indonesia?
-#+end_src
-
-#+begin_src my-gpt :session my-chat :service perplexity
-What is the population of it?
-#+end_src

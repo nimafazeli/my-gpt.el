@@ -35,53 +35,70 @@
             (json-string (buffer-substring-no-properties (point) (point-max))))
         (json-read-from-string json-string)))))
 
-(defun my-gpt-extract-content (response service)
-  "Extract content from RESPONSE based on SERVICE."
+(defun my-gpt-extract-content (response)
+  "Extract content from RESPONSE."
   (let* ((choices (gethash "choices" response))
          (first-choice (aref choices 0))
-         (message (gethash "message" first-choice))
-         (content (gethash "content" message)))
-    content))
+         (message (gethash "message" first-choice)))
+    (gethash "content" message)))
 
-(defun my-gpt-format-messages (service body session)
-  "Format messages for SERVICE using BODY and SESSION."
-  (let ((messages (gethash session my-gpt-sessions)))
-    (if (eq service 'perplexity)
-        (vconcat
-         messages
-         (vector `((role . "user")
-                   (content . [((type . "text") (text . ,body))]))))
-      (vconcat
-       messages
-       (vector `((role . "user")
-                 (content . ,body)))))))
+(defun my-gpt-format-messages (body session system-directive)
+  "Format messages using BODY, SESSION, and SYSTEM-DIRECTIVE."
+  (let* ((session-data (gethash session my-gpt-sessions))
+         (system-message (when system-directive
+                           `((role . "system") (content . ,system-directive))))
+         (messages (alist-get 'messages session-data)))
+    (vconcat
+     (when system-message (vector system-message))
+     messages
+     (vector `((role . "user") (content . ,body))))))
 
-(defun my-gpt-send (service model body session)
-  "Send BODY to SERVICE using MODEL and SESSION, and return the response."
+(defun my-gpt-send (service model body session system-directive)
+  "Send BODY to SERVICE using MODEL, SESSION, and SYSTEM-DIRECTIVE, and return the response."
   (let* ((api-key (my-gpt-get-api-key (if (eq service 'openai) "api.openai.com" "api.perplexity.ai") "org-ai"))
          (url (if (eq service 'openai) my-gpt-openai-api-url my-gpt-perplexity-api-url))
          (headers `(("Content-Type" . "application/json")
                     ("Authorization" . ,(format "Bearer %s" api-key))))
-         (messages (my-gpt-format-messages service body session))
+         (messages (my-gpt-format-messages body session system-directive))
          (data (json-encode `(("model" . ,model)
                               ("messages" . ,messages)))))
-    (condition-case err
-        (let* ((response (my-gpt-send-request url headers data))
-               (content (my-gpt-extract-content response service)))
-          (puthash session (vconcat messages (vector `((role . "assistant") (content . ,content))))
-                   my-gpt-sessions)
-          content)
-      (error
-       (message "Error occurred: %S" err)
-       (error "Failed to get response: %S" err)))))
+    (let* ((response (my-gpt-send-request url headers data))
+           (content (my-gpt-extract-content response)))
+      (puthash session
+               `((messages . ,(vconcat messages `[((role . "assistant") (content . ,content))])))
+               my-gpt-sessions)
+      content)))
+
+(defun my-gpt-get-template (template-name)
+  "Get the named template TEMPLATE-NAME."
+  (let ((template-block (org-babel-find-named-block (concat "my-gpt_template: " template-name))))
+    (when template-block
+      (with-temp-buffer
+        (insert template-block)
+        (org-babel-lob-ingest (current-buffer))
+        (goto-char (point-min))
+        (org-babel-parse-header-arguments (org-babel-lob-get-header))))))
+
+(defun org-babel-expand-body:my-gpt (body params)
+  "Expand BODY according to PARAMS, return the expanded body."
+  (org-babel-expand-noweb-references
+   (list "my-gpt" body params)))
 
 (defun org-babel-execute:my-gpt (body params)
   "Execute a block of my-gpt code with org-babel."
-  (let* ((service (intern (or (cdr (assq :service params)) "openai")))
-         (model (or (cdr (assq :model params)) 
+  (let* ((processed-params (org-babel-process-params params))
+         (expanded-body (org-babel-expand-body:my-gpt body processed-params))
+         (service (intern (or (cdr (assq :service processed-params)) "openai")))
+         (model (or (cdr (assq :model processed-params)) 
                     (if (eq service 'openai) "gpt-4" "llama-3.1-sonar-small-128k-online")))
-         (session (or (cdr (assq :session params)) "default"))
-         (result (my-gpt-send service model body session)))
+         (session (or (cdr (assq :session processed-params)) "default"))
+         (template (cdr (assq :template processed-params)))
+         (template-params (when template (my-gpt-get-template template)))
+         (effective-params (append processed-params template-params))
+         (system-directive (or (cdr (assq :system effective-params))
+                               (org-entry-get nil "GPT_SYSTEM" t)
+                               (cdr (assq :system (org-babel-params-from-properties "my-gpt")))))
+         (result (my-gpt-send service model expanded-body session system-directive)))
     (org-babel-reassemble-table
      result
      (org-babel-pick-name (cdr (assq :colname-names params))

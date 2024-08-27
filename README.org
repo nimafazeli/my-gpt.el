@@ -1,0 +1,227 @@
+#+TITLE: my-gpt: Emacs Org-mode Integration for AI Language Models
+#+AUTHOR: Your Name
+#+DATE: [2024-05-15 Wed]
+
+* Introduction
+  ~my-gpt~ is an Emacs package that integrates AI language models (currently OpenAI's GPT and Perplexity AI) into Org-mode. It allows you to interact with these AI services directly from your Org documents using org-babel code blocks.
+
+* Installation
+  1. Ensure you have Emacs 27.1 or later installed.
+  2. Place the ~my-gpt.el~ file in your Emacs load path.
+  3. Add the following to your Emacs configuration:
+
+     #+begin_src emacs-lisp
+     (require 'my-gpt)
+     (add-to-list 'org-babel-load-languages '(my-gpt . t))
+     (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages)
+     #+end_src
+
+  4. Set up your API keys in the =~/.authinfo.gpg= file:
+
+     #+begin_example
+     machine api.openai.com login org-ai password YOUR_OPENAI_API_KEY
+     machine api.perplexity.ai login org-ai password YOUR_PERPLEXITY_API_KEY
+     #+end_example
+
+* Basic Usage
+  To use ~my-gpt~ in an Org document, create a code block with the ~my-gpt~ language:
+
+  #+begin_src org
+  ,#+begin_src my-gpt
+  What is the capital of France?
+  ,#+end_src
+  #+end_src
+
+  Execute the block with ~C-c C-c~, and the AI's response will appear below the block.
+
+* Features and Advanced Usage
+
+** Specifying the AI Service
+   Use the ~:service~ header argument to choose between OpenAI and Perplexity:
+
+   #+begin_src org
+   ,#+begin_src my-gpt :service openai
+   Explain quantum computing in simple terms.
+   ,#+end_src
+
+   ,#+begin_src my-gpt :service perplexity
+   What are the main differences between Python and JavaScript?
+   ,#+end_src
+   #+end_src
+
+** Setting the AI Model
+   Specify the model using the ~:model~ header argument:
+
+   #+begin_src org
+   ,#+begin_src my-gpt :service openai :model gpt-4
+   Write a haiku about autumn.
+   ,#+end_src
+   #+end_src
+
+** Using System Directives
+   System directives help set the context or behavior for the AI's responses. There are several ways to set system directives:
+
+*** 1. Source Block Header Argument
+    Use the ~:system~ header argument directly in the code block:
+
+    #+begin_src my-gpt :system "You are a helpful assistant with expertise in French. You always give your response in French. You always give your response in org-mode format" :results output
+    How do we say bread and jam?
+    #+end_src
+
+    #+RESULTS:
+    : "Le pain et la confiture" sont les traductions françaises de "bread and jam".
+
+
+
+
+*** TODO 2. Properties Drawer
+    Set the ~GPT_SYSTEM~ property in a properties drawer to apply a system directive to all ~my-gpt~ blocks within that subtree:
+
+**** Python Programming
+    :PROPERTIES:
+    :GPT_SYSTEM: You are an expert Python programmer. Provide code examples without explanations.
+    :END:
+
+    #+begin_src my-gpt
+    Write a function to find prime numbers up to n.
+    #+end_src
+
+    #+RESULTS:
+    #+begin_example
+    Here is a function in Python that computes all prime numbers up to n:
+
+    ```python
+    def find_primes(n):
+        # Initialize a list of all the numbers up to n
+        primes = [True for i in range(n+1)]
+        # Zero and one are not prime numbers
+        primes[0] = primes[1] = False
+        # Variable p is a prime flag
+        p = 2
+        while p * p <= n:
+            # If primes[p] is not changed, then it is a prime
+            if primes[p] is True:
+                # Update all multiples of p
+                for i in range(p * p, n+1, p):
+                    primes[i] = False
+            p += 1
+        # Form a list of prime numbers
+        prime_numbers = [p for p, prime in enumerate(primes) if prime]
+        return prime_numbers
+
+    print(find_primes(20))
+    ```
+
+    This function uses the Sieve of Eratosthenes approach which is a very efficient algorithm to find all prime numbers smaller than n when n is a smaller number.
+    #+end_example
+
+**** Haskell Programming
+    :PROPERTIES:
+    :GPT_SYSTEM: You are an expert Haskell programmer. Provide code only without any prose and explanation.
+    :END:
+
+    #+begin_src my-gpt
+    Write a function to find prime numbers up to n.
+    #+end_src
+
+    #+RESULTS:
+    #+begin_example
+    Here's a function written in Python to find all prime numbers up to `n`.
+
+    ```python
+    def prime_numbers(n):
+        primes = []
+        for possiblePrime in range(2, n + 1):
+            isPrime = True
+            for num in range(2, possiblePrime):
+                if possiblePrime % num == 0:
+                    isPrime = False
+            if isPrime:
+                primes.append(possiblePrime)
+        return primes
+    ```
+
+    Just call `prime_numbers(n)` where `n` is the number up to which you want to find prime numbers.
+
+    For example, calling `prime_numbers(10)` will return the list `[2, 3, 5, 7]` which are all the prime numbers up to 10.
+    #+end_example
+
+*** TODO 3. File-level Default Settings
+#+PROPERTY: header-args:my-gpt :service openai :system "You are a helpful Farsi teacher. You always respond in Farsi whenever asked a question."
+
+    Set default values at the beginning of the org file:
+
+    #+begin_src my-gpt :system "You are a helpful Farsi teacher. You always responde in Farsi whenever asked a question" :results output
+    How do we say bread and jam
+    #+end_src
+
+    #+RESULTS:
+    : En Farsi, nous disons "nan va morabbâ" pour "pain et confiture".
+
+*** TODO 4. Named Templates
+    Define reusable templates for common configurations:
+
+    #+name: my-gpt_template: haskell-expert
+    :system "You are a Haskell programming expert. Provide concise, efficient code and only code without any pros and extra explanation." :service openai :model gpt-4
+    #+end_src
+
+    #+begin_src my-gpt :template python-expert
+    Implement a binary search algorithm.
+    #+end_src
+
+    #+RESULTS:
+    #+begin_example
+    Here's a binary search algorithm implemented in Python:
+
+    ```python
+    def binary_search(lst, target):
+        low = 0
+        high = len(lst) - 1
+
+        while low <= high:
+            mid = (low + high) // 2
+            if lst[mid] == target:
+                return mid
+            elif lst[mid] < target:
+                low = mid + 1
+            else:
+                high = mid - 1
+        return -1
+    ```
+
+    This function takes a sorted list `lst` and the target value to find `target` as input, and returns the index of the target in the list if found, and `-1` if the target is not found. This function implements the binary search algorithm, where the search space is continuously halved until the target is found.
+    #+end_example
+
+*** TODO 5. Dynamic Variables
+    Use org-mode's noweb syntax to set parameters dynamically:
+
+    #+begin_src org
+    ,#+name: math-tutor-system
+    ,#+begin_src emacs-lisp :results silent
+    "You are a patient math tutor. Explain concepts step-by-step."
+    ,#+end_src
+
+    ,#+begin_src my-gpt :system <<math-tutor-system>>
+    Explain the concept of derivatives in calculus.
+    ,#+end_src
+    #+end_src
+
+** Maintaining Conversation Context
+   Use the ~:session~ header argument to maintain context across multiple code blocks:
+
+   #+begin_src org
+   ,#+begin_src my-gpt :session math-tutoring
+   What is the Pythagorean theorem?
+   ,#+end_src
+
+   ,#+begin_src my-gpt :session math-tutoring
+   Now, can you give me an example of how to use it?
+   ,#+end_src
+   #+end_src
+
+* Conclusion
+  ~my-gpt~ provides a flexible and powerful way to integrate AI language models into your Org-mode workflow. From simple queries to complex, context-aware interactions, you can leverage the power of AI directly within your documents.
+
+  For more information or to report issues, please visit the project repository: [Your Repository URL]
+
+  Happy AI-assisted note-taking and writing!
