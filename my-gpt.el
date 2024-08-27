@@ -11,6 +11,9 @@
 (defvar my-gpt-perplexity-api-url "https://api.perplexity.ai/chat/completions"
   "The Perplexity AI API endpoint for completions.")
 
+(defvar my-gpt-sessions (make-hash-table :test 'equal)
+  "Hash table to store session data.")
+
 (defun my-gpt-get-api-key (host user)
   "Retrieve the API key for HOST and USER from the authinfo.gpg file."
   (let ((auth-info (auth-source-search :host host :user user :require '(:secret))))
@@ -42,15 +45,18 @@
 
 (defun my-gpt-format-messages (service body session)
   "Format messages for SERVICE using BODY and SESSION."
-  (if (eq service 'perplexity)
-      (vector
-       `((role . "user")
-         (content . [((type . "text") (text . ,body))])))
-    (vector
-     `((role . "user")
-       (content . ,body)))))
+  (let ((messages (gethash session my-gpt-sessions)))
+    (if (eq service 'perplexity)
+        (vconcat
+         messages
+         (vector `((role . "user")
+                   (content . [((type . "text") (text . ,body))]))))
+      (vconcat
+       messages
+       (vector `((role . "user")
+                 (content . ,body)))))))
 
-(defun my-gpt-send (service model body &optional session)
+(defun my-gpt-send (service model body session)
   "Send BODY to SERVICE using MODEL and SESSION, and return the response."
   (let* ((api-key (my-gpt-get-api-key (if (eq service 'openai) "api.openai.com" "api.perplexity.ai") "org-ai"))
          (url (if (eq service 'openai) my-gpt-openai-api-url my-gpt-perplexity-api-url))
@@ -58,28 +64,30 @@
                     ("Authorization" . ,(format "Bearer %s" api-key))))
          (messages (my-gpt-format-messages service body session))
          (data (json-encode `(("model" . ,model)
-                              ("messages" . ,messages))))
-         (retries 3))
-    (message "Request data: %s" data)  ; Debug output
-    (while (> retries 0)
-      (condition-case err
-          (let ((response (my-gpt-send-request url headers data)))
-            (message "API Response: %S" response)
-            (return-from my-gpt-send (my-gpt-extract-content response service)))
-        (error
-         (setq retries (1- retries))
-         (message "Error occurred: %S. Retries left: %d" err retries)
-         (when (= retries 0)
-           (error "Failed to get response after multiple attempts: %S" err)))))))
+                              ("messages" . ,messages)))))
+    (condition-case err
+        (let* ((response (my-gpt-send-request url headers data))
+               (content (my-gpt-extract-content response service)))
+          (puthash session (vconcat messages (vector `((role . "assistant") (content . ,content))))
+                   my-gpt-sessions)
+          content)
+      (error
+       (message "Error occurred: %S" err)
+       (error "Failed to get response: %S" err)))))
 
 (defun org-babel-execute:my-gpt (body params)
   "Execute a block of my-gpt code with org-babel."
   (let* ((service (intern (or (cdr (assq :service params)) "openai")))
          (model (or (cdr (assq :model params)) 
                     (if (eq service 'openai) "gpt-4" "llama-3.1-sonar-small-128k-online")))
-         (session (cdr (assq :session params)))
+         (session (or (cdr (assq :session params)) "default"))
          (result (my-gpt-send service model body session)))
-    result))
+    (org-babel-reassemble-table
+     result
+     (org-babel-pick-name (cdr (assq :colname-names params))
+                          (cdr (assq :colnames params)))
+     (org-babel-pick-name (cdr (assq :rowname-names params))
+                          (cdr (assq :rownames params))))))
 
 (add-to-list 'org-babel-load-languages '(my-gpt . t))
 
