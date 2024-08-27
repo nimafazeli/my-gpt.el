@@ -1,4 +1,4 @@
-;;; my-gpt.el --- Interact with various AI APIs -*- lexical-binding: t; -*-
+;;; my-gpt.el --- Interact with AI APIs through Org-mode -*- lexical-binding: t; -*-
 
 ;;; Commentary:
 ;; This package provides integration between Org-mode and AI language models
@@ -69,27 +69,31 @@
          (message (gethash "message" first-choice)))
     (gethash "content" message)))
 
-(defun my-gpt-format-messages (body session)
-  "Format messages using BODY and SESSION."
+(defun my-gpt-format-messages (body session system-content)
+  "Format messages using BODY, SESSION, and SYSTEM-CONTENT."
   (let ((messages (gethash session my-gpt-sessions)))
     (vconcat
-     messages
+     (when system-content
+       (vector `((role . "system") (content . ,system-content))))
+     (or messages [])
      (vector `((role . "user") (content . ,body))))))
 
-(defun my-gpt-send (service body session)
-  "Send BODY to SERVICE using SESSION, and return the response."
+(defun my-gpt-send (service body session system-content)
+  "Send BODY to SERVICE using SESSION and SYSTEM-CONTENT, and return the response."
   (let* ((api-key (my-gpt-get-api-key (if (eq service 'openai) "api.openai.com" "api.perplexity.ai") "org-ai"))
          (url (if (eq service 'openai) my-gpt-openai-api-url my-gpt-perplexity-api-url))
          (model (if (eq service 'openai) my-gpt-openai-model my-gpt-perplexity-model))
          (headers `(("Content-Type" . "application/json")
                     ("Authorization" . ,(format "Bearer %s" api-key))))
-         (messages (my-gpt-format-messages body session))
+         (messages (my-gpt-format-messages body session system-content))
          (data (json-encode `(("model" . ,model)
                               ("messages" . ,messages)))))
     (let* ((response (my-gpt-send-request url headers data))
            (content (my-gpt-extract-content response)))
       (puthash session
-               (vconcat messages `[((role . "assistant") (content . ,content))])
+               (vconcat (gethash session my-gpt-sessions [])
+                        (vector `((role . "user") (content . ,body))
+                                `((role . "assistant") (content . ,content))))
                my-gpt-sessions)
       content)))
 
@@ -97,8 +101,24 @@
   "Execute a block of my-gpt code with org-babel."
   (let* ((service (intern (or (cdr (assq :service params)) "openai")))
          (session (or (cdr (assq :session params)) "default"))
-         (result (my-gpt-send service body session)))
+         (system-content
+          (or
+           ;; First, check for a :system header argument
+           (cdr (assq :system params))
+           ;; If not found, look for a SYSTEM property, including inherited ones
+           (org-entry-get nil "SYSTEM" t)
+           ;; If still not found, use a default directive
+           "You are a helpful assistant."))
+         (expanded-body (org-babel-expand-body:my-gpt body params))
+         (result (my-gpt-send service expanded-body session system-content)))
     result))
+
+(defun org-babel-expand-body:my-gpt (body params)
+  "Expand BODY according to PARAMS, return the expanded body."
+  (org-babel-expand-noweb-references
+   (list "my-gpt" body params)))
+
+(add-to-list 'org-babel-load-languages '(my-gpt . t))
 
 (provide 'my-gpt)
 
