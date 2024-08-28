@@ -10,6 +10,7 @@
 (require 'url)
 (require 'auth-source)
 (require 'ob)
+(require 'ob-core)
 
 (defgroup my-gpt nil
   "Customization group for my-gpt package."
@@ -34,9 +35,6 @@
   "The default model to use for Perplexity API requests."
   :type 'string
   :group 'my-gpt)
-
-(defvar my-gpt-sessions (make-hash-table :test 'equal)
-  "Hash table to store session data.")
 
 (defun my-gpt-get-api-key (host user)
   "Retrieve the API key for HOST and USER from the authinfo.gpg file."
@@ -69,13 +67,26 @@
          (message (gethash "message" first-choice)))
     (gethash "content" message)))
 
+(defun my-gpt-get-buffer-messages (session)
+  "Retrieve conversation history for SESSION from the current buffer."
+  (let ((messages []))
+    (org-babel-map-executables nil
+      (when (and (string= (nth 0 info) "my-gpt")
+                 (string= (cdr (assq :session (nth 2 info))) session))
+        (let ((body (nth 1 info))
+              (result (org-babel-read-result)))
+          (push `((role . "user") (content . ,body)) messages)
+          (when result
+            (push `((role . "assistant") (content . ,result)) messages)))))
+    (vconcat (nreverse messages))))
+
 (defun my-gpt-format-messages (body session system-content)
   "Format messages using BODY, SESSION, and SYSTEM-CONTENT."
-  (let ((messages (gethash session my-gpt-sessions)))
+  (let ((messages (my-gpt-get-buffer-messages session)))
     (vconcat
      (when system-content
        (vector `((role . "system") (content . ,system-content))))
-     (or messages [])
+     messages
      (vector `((role . "user") (content . ,body))))))
 
 (defun my-gpt-send (service body session system-content)
@@ -90,11 +101,6 @@
                               ("messages" . ,messages)))))
     (let* ((response (my-gpt-send-request url headers data))
            (content (my-gpt-extract-content response)))
-      (puthash session
-               (vconcat (gethash session my-gpt-sessions [])
-                        (vector `((role . "user") (content . ,body))
-                                `((role . "assistant") (content . ,content))))
-               my-gpt-sessions)
       content)))
 
 (defun org-babel-execute:my-gpt (body params)
