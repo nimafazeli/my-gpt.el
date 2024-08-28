@@ -1,5 +1,5 @@
 #+TITLE: my-gpt: Emacs Org-mode Integration for AI Language Models
-#+AUTHOR: Your Name
+#+AUTHOR: Nima Fazeli
 #+DATE: [2024-05-15 Wed]
 
 * Introduction
@@ -171,6 +171,6 @@ Provide another example.
 * Conclusion
   ~my-gpt~ provides a flexible and powerful way to integrate AI language models into your Org-mode workflow. From simple queries to complex, context-aware interactions, you can leverage the power of AI directly within your documents.
 
-  For more information or to report issues, please visit the project repository: [Your Repository URL]
+  For more information or to report issues, please visit the project repository at =github.com/nimafazeli/my-gpt.el=
 
   Happy AI-assisted note-taking and writing!
