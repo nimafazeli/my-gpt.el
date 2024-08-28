@@ -10,7 +10,6 @@
 (require 'url)
 (require 'auth-source)
 (require 'ob)
-(require 'ob-core)
 
 (defgroup my-gpt nil
   "Customization group for my-gpt package."
@@ -69,15 +68,23 @@
 
 (defun my-gpt-get-buffer-messages (session)
   "Retrieve conversation history for SESSION from the current buffer."
-  (let ((messages []))
-    (org-babel-map-executables nil
-      (when (and (string= (nth 0 info) "my-gpt")
-                 (string= (cdr (assq :session (nth 2 info))) session))
-        (let ((body (nth 1 info))
-              (result (org-babel-read-result)))
-          (push `((role . "user") (content . ,body)) messages)
-          (when result
-            (push `((role . "assistant") (content . ,result)) messages)))))
+  (let ((messages [])
+        (case-fold-search t))
+    (save-excursion
+      (goto-char (point-min))
+      (while (re-search-forward "^#\\+begin_src\\s-+my-gpt\\(.*\\)$" nil t)
+        (let ((src-block-start (point))
+              (params (org-babel-parse-header-arguments (match-string 1))))
+          (when (string= (cdr (assq :session params)) session)
+            (let ((body (progn
+                          (forward-line)
+                          (buffer-substring-no-properties (point) (progn (search-forward "#+end_src" nil t) (line-beginning-position))))))
+              (push `((role . "user") (content . ,body)) messages)
+              (forward-line)
+              (when (looking-at "^#\\+RESULTS:")
+                (forward-line)
+                (let ((result (buffer-substring-no-properties (point) (progn (search-forward "#+end_src" nil t) (line-beginning-position)))))
+                  (push `((role . "assistant") (content . ,result)) messages))))))))
     (vconcat (nreverse messages))))
 
 (defun my-gpt-format-messages (body session system-content)
