@@ -35,6 +35,9 @@
   :type 'string
   :group 'my-gpt)
 
+(defvar-local my-gpt-session-messages (make-hash-table :test 'equal)
+  "Hash table to store session messages for the current buffer.")
+
 (defun my-gpt-get-api-key (host user)
   "Retrieve the API key for HOST and USER from the authinfo.gpg file."
   (let ((auth-info (auth-source-search :host host :user user :require '(:secret))))
@@ -66,34 +69,17 @@
          (message (gethash "message" first-choice)))
     (gethash "content" message)))
 
-(defun my-gpt-get-buffer-messages (session)
+(defun my-gpt-get-session-messages (session)
   "Retrieve conversation history for SESSION from the current buffer."
-  (let ((messages [])
-        (case-fold-search t))
-    (save-excursion
-      (goto-char (point-min))
-      (while (re-search-forward "^#\\+begin_src\\s-+my-gpt\\(.*\\)$" nil t)
-        (let ((src-block-start (point))
-              (params (org-babel-parse-header-arguments (match-string 1))))
-          (when (string= (cdr (assq :session params)) session)
-            (let ((body (progn
-                          (forward-line)
-                          (buffer-substring-no-properties (point) (progn (search-forward "#+end_src" nil t) (line-beginning-position))))))
-              (push `((role . "user") (content . ,body)) messages)
-              (forward-line)
-              (when (looking-at "^#\\+RESULTS:")
-                (forward-line)
-                (let ((result (buffer-substring-no-properties (point) (progn (search-forward "#+end_src" nil t) (line-beginning-position)))))
-                  (push `((role . "assistant") (content . ,result)) messages))))))))
-    (vconcat (nreverse messages))))
+  (gethash session my-gpt-session-messages))
 
 (defun my-gpt-format-messages (body session system-content)
   "Format messages using BODY, SESSION, and SYSTEM-CONTENT."
-  (let ((messages (my-gpt-get-buffer-messages session)))
+  (let ((messages (my-gpt-get-session-messages session)))
     (vconcat
      (when system-content
        (vector `((role . "system") (content . ,system-content))))
-     messages
+     (or messages [])
      (vector `((role . "user") (content . ,body))))))
 
 (defun my-gpt-send (service body session system-content)
@@ -108,12 +94,18 @@
                               ("messages" . ,messages)))))
     (let* ((response (my-gpt-send-request url headers data))
            (content (my-gpt-extract-content response)))
+      ;; Update session messages
+      (puthash session 
+               (vconcat (or (gethash session my-gpt-session-messages) [])
+                        (vector `((role . "user") (content . ,body))
+                                `((role . "assistant") (content . ,content))))
+               my-gpt-session-messages)
       content)))
 
 (defun org-babel-execute:my-gpt (body params)
   "Execute a block of my-gpt code with org-babel."
   (let* ((service (intern (or (cdr (assq :service params)) "openai")))
-         (session (or (cdr (assq :session params)) "default"))
+         (session (cdr (assq :session params)))
          (system-content
           (or
            ;; First, check for a :system header argument

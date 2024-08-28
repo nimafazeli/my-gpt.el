@@ -44,7 +44,9 @@
    #+end_src
 
    #+RESULTS:
-   : Emacs is a highly customizable, open-source text editor that features a wide range of functions beyond just editing, such as email and news reader, file manager, web browser, and environment for programming in multiple languages.
+   : Emacs is a highly customizable, open-source text editor that includes features for coding, project planning, and even email, making it a comprehensive tool for a wide range of tasks.
+
+
 
 
 
@@ -55,23 +57,25 @@
    #+RESULTS:
    : | Date       | Closing Value |
    : |------------|---------------|
-   : | Aug 27, 2024 | $561.56      |
-   : | Aug 26, 2024 | $559.49      |
-   : | Aug 25, 2024 | $559.61      |
+   : | Aug 28, 2024 | 559.28        |
+   : | Aug 27, 2024 | 560.65        |
+   : | Aug 26, 2024 | 558.70        |
    : 
-   : Note: The closing values are based on the available historical data from the sources provided. For August 25, 2024, the closest available data point is used, as the exact value for that day is not directly provided in the sources.
+   : Note: The closing values are based on the historical price data from YCharts.
+
+
 
 ** Setting the AI Model
    Specify the model using the ~:model~ header argument:
 
    #+begin_src my-gpt :service openai :model gpt-4o
-   Write a haiku about work.
+   Write a haiku about spacemacs.
    #+end_src
 
    #+RESULTS:
-   : Paper trails expand,
-   : In the glow of the screen light,
-   : Purpose meets demand.
+   : In the code's vast space,
+   : Spacemacs lights the dark with ease,
+   : Scripting stars in place.
 
    
    #+begin_src my-gpt :service perplexity :model llama-3.1-sonar-large-128k-online
@@ -79,14 +83,8 @@
    #+end_src
 
    #+RESULTS:
-   : The current price of Bitcoin as of August 27, 2024, is approximately $62,418.47. However, other sources provide slightly different values:
-   : 
-   : - **$62,418.47** (as of 8 a.m. ET on August 27, 2024)
-   : - **$62,880.66** (as of August 26, 2024)
-   : - **$62,827.83** (as of August 27, 2024)
-   : - **$62,922.59** (historical data for August 27, 2024)
-   : 
-   : These values reflect the dynamic nature of the cryptocurrency market, which can fluctuate constantly due to various factors such as market demand, investor sentiment, regulatory changes, and macroeconomic trends.
+   : As of August 28, 2024, the current price of Bitcoin is $59,938.50 USD.
+
 
    
 ** Using persistent Sessions
@@ -97,13 +95,14 @@
    #+end_src
 
    #+RESULTS:
-   : | Date       | Close |
-   : |------------|-------|
-   : | Aug 26, 2024 | 561.25 |
-   : | Aug 25, 2024 | 560.29 |
-   : | Aug 24, 2024 | 559.61 |
+   : | Date       | Closing Value |
+   : |------------|---------------|
+   : | Aug 28, 2024 | 559.28        |
+   : | Aug 27, 2024 | 561.56        |
+   : | Aug 26, 2024 | 560.79        |
    : 
-   : Note: The closing values are based on the provided sources and.
+   : [Source: YCharts and other historical data sources]
+
 
    
    #+begin_src my-gpt :service perplexity :session test :results output
@@ -111,13 +110,14 @@
    #+end_src
 
    #+RESULTS:
-   : You can find the historical price chart for SPY on various financial websites. Here are a few links:
+   : You can find the historical price chart for SPY on various financial websites. Here are some links to charts:
    : 
-   : 1. **TradingView**: [SPY Chart — SPDR S&P 500 ETF Trust](https://www.tradingview.com/symbols/AMEX-SPY/)
-   : 2. **Yahoo Finance**: [SPY Price: 561.25 for Aug. 27, 2024 - YCharts](https://ycharts.com/companies/SPY/price)
-   : 3. **WSJ Market Data**: [SPDR S&P 500 ETF Trust Historical Prices](https://www.wsj.com/market-data/quotes/etf/SPY/historical-prices)
+   : 1. **YCharts**: [SPY Price Chart](https://ycharts.com/companies/SPY/price)
+   : 2. **TradingView**: [SPY Chart](https://www.tradingview.com/symbols/AMEX-SPY/)
+   : 3. **Macrotrends**: [SPDR S&P 500 ETF Stock Price History](https://www.macrotrends.net/stocks/charts/SPY/spdr-s-p-500-etf/stock-price-history)
    : 
-   : These links provide interactive charts that display the historical price data for SPY.
+   : These links provide interactive charts that allow you to view historical price data for SPY.
+
 
 ** Using System directives
 
@@ -133,19 +133,23 @@ Provide an example of using list comprehensions.
 #+end_src
 
 #+RESULTS:
-: ```haskell
-: squares = [x^2 | x <- [1..10]]
-: ```
+: [ x * 2 | x <- [1..10], x * 2 >= 12 ]
 
 
-#+begin_src my-gpt :session haskell
-Provide another example of using list comprehensions.
+#+begin_src my-gpt
+Provide an example of using list comprehensions.
 #+end_src
 
 #+RESULTS:
-: ```haskell
-: [x**2 | x <- [1..10], x**2 > 3]
-: ```
+: let evens = [x*2 | x <- [1..10]]
+
+
+#+begin_src my-gpt :session haskell
+Set the list to go up to 20 in increments of 2.
+#+end_src
+
+#+RESULTS:
+: [ x * 2 | x <- [1..10], x * 2 >= 12, x `mod` 2 == 0 ]
 
 *** Python Programming
 :PROPERTIES:
@@ -158,7 +162,9 @@ Now provide an example of using list comprehensions.
 #+end_src
 
 #+RESULTS:
-: squared_numbers = [number**2 for number in range(10)]
+: numbers = [1, 2, 3, 4, 5]
+: squares = [num ** 2 for num in numbers]
+
    
 
 #+begin_src my-gpt :session python
@@ -166,7 +172,8 @@ Provide another example.
 #+end_src
 
 #+RESULTS:
-: even_numbers = [n for n in range(20) if n % 2 == 0]
+: names = ["John", "Anna", "Ray", "Sophie", "Mike"]
+: short_names = [name for name in names if len(name) < 5]
 
 * Conclusion
   ~my-gpt~ provides a flexible and powerful way to integrate AI language models into your Org-mode workflow. From simple queries to complex, context-aware interactions, you can leverage the power of AI directly within your documents.
