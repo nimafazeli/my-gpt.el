@@ -35,6 +35,16 @@
   :type 'string
   :group 'my-gpt)
 
+(defcustom my-gpt-max-tokens 1000
+  "The maximum number of tokens to generate in the response."
+  :type 'integer
+  :group 'my-gpt)
+
+(defcustom my-gpt-temperature 0.7
+  "The sampling temperature to use for generation (0.0 - 1.0)."
+  :type 'float
+  :group 'my-gpt)
+
 (defvar-local my-gpt-session-messages (make-hash-table :test 'equal)
   "Hash table to store session messages for the current buffer.")
 
@@ -82,7 +92,7 @@
      (or messages [])
      (vector `((role . "user") (content . ,body))))))
 
-(defun my-gpt-send (service body session system-content)
+(defun my-gpt-send (service body session system-content &optional max-tokens temperature)
   "Send BODY to SERVICE using SESSION and SYSTEM-CONTENT, and return the response."
   (let* ((api-key (my-gpt-get-api-key (if (eq service 'openai) "api.openai.com" "api.perplexity.ai") "org-ai"))
          (url (if (eq service 'openai) my-gpt-openai-api-url my-gpt-perplexity-api-url))
@@ -91,7 +101,9 @@
                     ("Authorization" . ,(format "Bearer %s" api-key))))
          (messages (my-gpt-format-messages body session system-content))
          (data (json-encode `(("model" . ,model)
-                              ("messages" . ,messages)))))
+                              ("messages" . ,messages)
+                              ("max_tokens" . ,(or max-tokens my-gpt-max-tokens))
+                              ("temperature" . ,(or temperature my-gpt-temperature))))))
     (let* ((response (my-gpt-send-request url headers data))
            (content (my-gpt-extract-content response)))
       ;; Update session messages
@@ -114,14 +126,37 @@
            (org-entry-get nil "SYSTEM" t)
            ;; If still not found, use a default directive
            "You are a helpful assistant."))
+         (max-tokens (or (cdr (assq :max-tokens params)) my-gpt-max-tokens))
+         (temperature (or (cdr (assq :temperature params)) my-gpt-temperature))
          (expanded-body (org-babel-expand-body:my-gpt body params))
-         (result (my-gpt-send service expanded-body session system-content)))
+         (result (my-gpt-send service expanded-body session system-content max-tokens temperature)))
     result))
 
 (defun org-babel-expand-body:my-gpt (body params)
   "Expand BODY according to PARAMS, return the expanded body."
   (org-babel-expand-noweb-references
    (list "my-gpt" body params)))
+
+(defun my-gpt-clear-session (session)
+  "Clear the conversation history for SESSION."
+  (interactive "sSession name: ")
+  (remhash session my-gpt-session-messages)
+  (message "Session %s cleared" session))
+
+(defun my-gpt-display-session (session)
+  "Display the conversation history for SESSION in a new buffer."
+  (interactive "sSession name: ")
+  (let ((messages (my-gpt-get-session-messages session)))
+    (if messages
+        (with-current-buffer (get-buffer-create (format "*my-gpt-session-%s*" session))
+          (erase-buffer)
+          (dolist (msg messages)
+            (let ((role (cdr (assoc 'role msg)))
+                  (content (cdr (assoc 'content msg))))
+              (insert (format "=== %s ===\n%s\n\n" (upcase role) content))))
+          (goto-char (point-min))
+          (display-buffer (current-buffer)))
+      (message "No messages found for session %s" session))))
 
 (add-to-list 'org-babel-load-languages '(my-gpt . t))
 

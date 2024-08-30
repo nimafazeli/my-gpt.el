@@ -44,8 +44,7 @@
    #+end_src
 
    #+RESULTS:
-   : Emacs is a highly customizable, open-source text editor that includes features for coding, project planning, and even email, making it a comprehensive tool for a wide range of tasks.
-
+   : Emacs is a highly customizable, open-source text editor that allows for program editing, email and news reading, and more, primarily used in Unix-like operating systems.
 
 
 
@@ -55,13 +54,12 @@
    #+end_src
 
    #+RESULTS:
-   : | Date       | Closing Value |
-   : |------------|---------------|
-   : | Aug 28, 2024 | 559.28        |
-   : | Aug 27, 2024 | 560.65        |
-   : | Aug 26, 2024 | 558.70        |
-   : 
-   : Note: The closing values are based on the historical price data from YCharts.
+   : | Date        | Closing Value |
+   : |-------------|----------------|
+   : | Aug 30, 2024 | 560.77        |
+   : | Aug 29, 2024 | 560.31        |
+   : | Aug 28, 2024 | 561.21        |
+
 
 
 
@@ -69,21 +67,22 @@
    Specify the model using the ~:model~ header argument:
 
    #+begin_src my-gpt :service openai :model gpt-4o
-   Write a haiku about spacemacs.
+   Write a haiku about vim.
    #+end_src
 
    #+RESULTS:
-   : In the code's vast space,
-   : Spacemacs lights the dark with ease,
-   : Scripting stars in place.
+   : Vim, swift and precise,
+   : In code's realm, you are the guide,
+   : Keys dance, thoughts entwined.
 
-   
+
    #+begin_src my-gpt :service perplexity :model llama-3.1-sonar-large-128k-online
    What is the current price of Bitcoin?
    #+end_src
 
    #+RESULTS:
-   : As of August 28, 2024, the current price of Bitcoin is $59,938.50 USD.
+   : As of August 30, 2024, the current price of Bitcoin is approximately $59,400.06 USD.
+
 
 
    
@@ -97,11 +96,11 @@
    #+RESULTS:
    : | Date       | Closing Value |
    : |------------|---------------|
-   : | Aug 28, 2024 | 559.28        |
-   : | Aug 27, 2024 | 561.56        |
-   : | Aug 26, 2024 | 560.79        |
+   : | Aug 30, 2024 | 560.77        |
+   : | Aug 29, 2024 | 560.31        |
+   : | Aug 28, 2024 | 561.21        |
    : 
-   : [Source: YCharts and other historical data sources]
+   : Note: The closing values are based on the data from Yahoo Finance.
 
 
    
@@ -110,13 +109,12 @@
    #+end_src
 
    #+RESULTS:
-   : You can find the historical price chart for SPY on various financial websites. Here are some links to charts:
+   : You can view the chart of SPY (SPDR S&P 500 ETF Trust) on various platforms, including:
    : 
-   : 1. **YCharts**: [SPY Price Chart](https://ycharts.com/companies/SPY/price)
-   : 2. **TradingView**: [SPY Chart](https://www.tradingview.com/symbols/AMEX-SPY/)
-   : 3. **Macrotrends**: [SPDR S&P 500 ETF Stock Price History](https://www.macrotrends.net/stocks/charts/SPY/spdr-s-p-500-etf/stock-price-history)
-   : 
-   : These links provide interactive charts that allow you to view historical price data for SPY.
+   : 1. **TradingView**: A comprehensive platform for financial charts and analysis. The link to SPY's chart is: https://www.tradingview.com/symbols/AMEX-SPY/ .
+   : 2. **Yahoo Finance**: Provides historical and real-time price data with interactive charts. You can access the chart by visiting https://finance.yahoo.com/quote/SPY/ and clicking on the "Chart" tab.
+   : 3. **YCharts**: Offers detailed historical price data with customizable charts. The link to SPY's chart is: https://ycharts.com/companies/SPY/price .
+   : 4. **WSJ Market Data**: Also provides historical prices and charts for various ETFs, including SPY. The link to historical prices is: https://www.wsj.com/market-data/quotes/etf/SPY/historical-prices .
 
 
 ** Using System directives
@@ -133,7 +131,8 @@ Provide an example of using list comprehensions.
 #+end_src
 
 #+RESULTS:
-: [ x * 2 | x <- [1..10], x * 2 >= 12 ]
+: squares = [x^2 | x <- [1..10]]
+
 
 
 #+begin_src my-gpt
@@ -141,15 +140,15 @@ Provide an example of using list comprehensions.
 #+end_src
 
 #+RESULTS:
-: let evens = [x*2 | x <- [1..10]]
+: [x^2 | x <- [1..10], x `mod` 2 == 0]
 
 
 #+begin_src my-gpt :session haskell
-Set the list to go up to 20 in increments of 2.
+Use list comprehension to find prime numbers less than 100
 #+end_src
 
 #+RESULTS:
-: [ x * 2 | x <- [1..10], x * 2 >= 12, x `mod` 2 == 0 ]
+: primes = [x | x <- [2..100], all (\y -> x `mod` y /= 0) [2..x-1]]
 
 *** Python Programming
 :PROPERTIES:
@@ -158,12 +157,11 @@ Set the list to go up to 20 in increments of 2.
 
 
 #+begin_src my-gpt :session python
-Now provide an example of using list comprehensions.
+Provide an example of list comprehension
 #+end_src
 
 #+RESULTS:
-: numbers = [1, 2, 3, 4, 5]
-: squares = [num ** 2 for num in numbers]
+: [num ** 2 for num in range(10)]
 
    
 
@@ -172,8 +170,7 @@ Provide another example.
 #+end_src
 
 #+RESULTS:
-: names = ["John", "Anna", "Ray", "Sophie", "Mike"]
-: short_names = [name for name in names if len(name) < 5]
+: [word.upper() for word in ['hello', 'world', 'python']]
 
 * Conclusion
   ~my-gpt~ provides a flexible and powerful way to integrate AI language models into your Org-mode workflow. From simple queries to complex, context-aware interactions, you can leverage the power of AI directly within your documents.
